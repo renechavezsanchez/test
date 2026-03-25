@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure System Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b;
+            color: #fafafa;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+
+        .stage {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stage.active {
+            display: flex;
+        }
+
+        #progress-inner {
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        #jump-btn {
+            transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .popup {
+            position: absolute;
+            width: 280px;
+            color: white;
+            padding: 16px;
+            z-index: 100;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Thinner, cleaner close button */
+        .close-btn {
+            font-family: sans-serif;
+            font-weight: 200;
+            font-size: 1.2rem;
+            line-height: 1;
+            color: white;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2000;
+        }
+
+        .shake-heavy {
+            animation: shake 0.2s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(2px, 2px); }
+            50% { transform: translate(-2px, -2px); }
+            100% { transform: translate(2px, -2px); }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- STAGE 1: THE LOADING BAR -->
+    <div id="stage-1" class="stage active">
+        <h1 class="text-3xl font-extrabold mb-10 tracking-tight">Initializing Secure Environment</h1>
+        <div class="w-full max-w-md bg-zinc-800 h-3 rounded-full overflow-hidden mb-6">
+            <div id="progress-inner" class="bg-indigo-500 h-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+        </div>
+        <p id="loading-msg" class="text-zinc-500 font-medium h-6">Booting kernel...</p>
+    </div>
+
+    <!-- STAGE 2: THE JUMPING BUTTON -->
+    <div id="stage-2" class="stage">
+        <h1 class="text-4xl font-extrabold mb-12 tracking-tight">Handshake Successful</h1>
+        <p class="mb-10 text-xl text-zinc-400">Security check complete. Please finalize your entry.</p>
+        <div class="relative w-full h-64 flex items-center justify-center">
+            <button id="jump-btn" class="bg-emerald-600 text-white font-bold py-4 px-12 rounded-xl text-xl shadow-xl hover:bg-emerald-500">
+                Continue to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- STAGE 3: THE AGREEMENT -->
+    <div id="stage-3" class="stage">
+        <h1 class="text-3xl font-extrabold mb-8 tracking-tight">System Compliance</h1>
+        <div class="bg-zinc-900 text-zinc-300 p-8 rounded-2xl shadow-2xl max-w-xl border border-zinc-800 overflow-y-auto max-h-[45vh]">
+            <h2 class="text-xl font-bold mb-6 text-white border-b border-zinc-800 pb-4 text-left">Terms of Service Addendum</h2>
+            <div class="text-left space-y-5 text-sm leading-relaxed">
+                <p><strong>Article 4.1:</strong> You agree that your mouse cursor is actually a small, digital pet that needs constant movement to survive.</p>
+                <p><strong>Article 4.2:</strong> By clicking 'Accept', you authorize our AI to judge your choice of fonts silently from the background.</p>
+                <p><strong>Article 4.3:</strong> You acknowledge that the scrolling action is a physical workout and shouldn't be performed without a warm-up.</p>
+                <p><strong>Article 4.4:</strong> You agree to provide your own sound effects (e.g., "vroom" or "beep") while interacting with any hover elements.</p>
+                <p><strong>Article 4.5:</strong> You waive the right to complain about buttons that have social anxiety and move away when approached.</p>
+                <div class="py-10 text-zinc-600 text-center uppercase tracking-widest text-[10px]">End of required reading</div>
+            </div>
+        </div>
+        <button id="accept-btn" class="mt-10 bg-indigo-600 text-white font-bold py-4 px-10 rounded-xl hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/20">
+            I didn't read this, but I accept anyways
+        </button>
+    </div>
+
+    <!-- STAGE 4: POPUP HYDRA -->
+    <div id="stage-4" class="stage">
+        <!-- Text container is now separate so it can be hidden -->
+        <div id="stage-4-content">
+            <h1 class="text-5xl font-black text-white">System Ready.</h1>
+            <p id="stage-4-subtitle" class="mt-4 text-xl text-zinc-500">Loading modules... (0/5 cleared)</p>
+        </div>
+        <div id="popup-container"></div>
+    </div>
+
+    <!-- FINALE OVERLAY -->
+    <div id="finale" class="fixed inset-0 bg-black/95 z-[1000] hidden flex-col items-center justify-center text-center p-10">
+        <h1 class="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-6 shake-heavy">YOU'VE BEEN PRANKED!</h1>
+        <p class="text-2xl text-white mb-10 max-w-2xl">Congratulations on your incredible patience. You successfully battled the UX from hell without breaking your monitor.</p>
+        <button onclick="location.reload()" class="bg-white text-black font-black py-4 px-12 rounded-full text-xl hover:scale-110 transition-transform">PLAY AGAIN?</button>
+    </div>
+
+    <script>
+        // --- STAGE 1 LOGIC ---
+        let progress = 0;
+        let loadingDir = 1;
+        const progressInner = document.getElementById('progress-inner');
+        const loadingMsg = document.getElementById('loading-msg');
+        
+        const forwardMsgs = ["Booting kernel...", "Mapping network drives...", "Encrypted handshake..."];
+        const backwardMsgs = ["Error: Logic mismatch...", "Defragmenting memory...", "Reverting to stable build..."];
+
+        function runLoader() {
+            const interval = setInterval(() => {
+                if (loadingDir === 1) {
+                    progress += 0.4;
+                    if (progress >= 98) {
+                        loadingDir = -1;
+                        loadingMsg.innerText = backwardMsgs[0];
+                        loadingMsg.style.color = "#f87171";
+                    }
+                } else {
+                    progress -= 1.2;
+                    if (progress <= 0) {
+                        clearInterval(interval);
+                        goToStage(2);
+                    }
+                }
+                
+                progressInner.style.width = progress + "%";
+                
+                if (loadingDir === 1) {
+                    if (progress < 33) loadingMsg.innerText = forwardMsgs[0];
+                    else if (progress < 66) loadingMsg.innerText = forwardMsgs[1];
+                    else loadingMsg.innerText = forwardMsgs[2];
+                } else {
+                    if (progress > 66) loadingMsg.innerText = backwardMsgs[0];
+                    else if (progress > 33) loadingMsg.innerText = backwardMsgs[1];
+                    else loadingMsg.innerText = backwardMsgs[2];
+                }
+            }, 30);
+        }
+
+        // --- STAGE 2 LOGIC ---
+        const jumpBtn = document.getElementById('jump-btn');
+        let jumpCount = 0;
+
+        jumpBtn.addEventListener('mouseover', () => {
+            if (jumpCount < 3) {
+                const x = (Math.random() - 0.5) * 500;
+                const y = (Math.random() - 0.5) * 400;
+                jumpBtn.style.transform = `translate(${x}px, ${y}px)`;
+                jumpCount++;
+            }
+        });
+
+        jumpBtn.addEventListener('click', () => {
+            if (jumpCount >= 3) goToStage(3);
+        });
+
+        // --- STAGE 3 LOGIC ---
+        document.getElementById('accept-btn').addEventListener('click', () => {
+            goToStage(4);
+            // Hide the background text when popups start
+            document.getElementById('stage-4-content').style.visibility = 'hidden';
+            initPopups();
+        });
+
+        // --- STAGE 4 LOGIC ---
+        let popupsClosed = 0;
+        const targetCloses = 5;
+        const popupMessages = [
+            "Analyzing ocular movement...",
+            "Window 404: Found too much.",
+            "Do you mind if we watch?",
+            "Your left click is very loud.",
+            "Wait, don't close this!",
+            "I was just getting comfy.",
+            "Is that your real name?",
+            "Clicking 'X' is aggressive.",
+            "Error: User is too persistent.",
+            "Just 1,000 more to go!"
+        ];
+
+        function createPopup() {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            
+            const x = Math.random() * (window.innerWidth - 300);
+            const y = Math.random() * (window.innerHeight - 200);
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            
+            const colors = ['rgba(39, 39, 42, 0.9)', 'rgba(30, 41, 59, 0.9)', 'rgba(24, 24, 27, 0.9)'];
+            popup.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+            popup.innerHTML = `
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">System Alert</span>
+                    <button class="close-btn">✕</button>
+                </div>
+                <p class="text-sm font-semibold text-zinc-100">${popupMessages[Math.floor(Math.random() * popupMessages.length)]}</p>
+            `;
+
+            popup.querySelector('.close-btn').onclick = (e) => {
+                e.stopPropagation();
+                popup.remove();
+                popupsClosed++;
+                
+                if (popupsClosed >= targetCloses) {
+                    showFinale();
+                } else {
+                    for(let i=0; i<3; i++) {
+                        setTimeout(createPopup, i * 150);
+                    }
+                }
+            };
+
+            document.getElementById('popup-container').appendChild(popup);
+        }
+
+        function initPopups() {
+            for(let i=0; i<5; i++) {
+                createPopup();
+            }
+        }
+
+        function showFinale() {
+            // Clear all popups immediately
+            document.getElementById('popup-container').innerHTML = "";
+            const finale = document.getElementById('finale');
+            finale.classList.remove('hidden');
+            finale.classList.add('flex');
+            initConfetti();
+        }
+
+        // --- ADVANCED CONFETTI LOGIC ---
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function initConfetti() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            for(let i = 0; i < 200; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: ['#facc15', '#f97316', '#818cf8', '#34d399', '#f472b6'][Math.floor(Math.random() * 5)],
+                    speed: Math.random() * 3 + 2,
+                    angle: Math.random() * 6.28,
+                    spin: Math.random() * 0.2 - 0.1
+                });
+            }
+            requestAnimationFrame(updateConfetti);
+        }
+
+        function updateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.y += p.speed;
+                p.angle += p.spin;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                ctx.restore();
+
+                if(p.y > canvas.height) p.y = -20;
+            });
+            requestAnimationFrame(updateConfetti);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // --- NAVIGATION ---
+        function goToStage(stageNum) {
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            document.getElementById(`stage-${stageNum}`).classList.add('active');
+            if (stageNum === 1) runLoader();
+        }
+
+        window.onload = () => {
+            runLoader();
+        };
+
+    </script>
+</body>
+</html>
